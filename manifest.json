@@ -1,0 +1,22 @@
+{
+    "name": "Mochi & Bloop: Starfall Circus",
+    "short_name": "Starfall Circus",
+    "description": "Un juego de circo mágico con Mochi y Bloop",
+    "start_url": "./starfall_circus.html",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "background_color": "#0a0514",
+    "theme_color": "#a855f7",
+    "icons": [
+        {
+            "src": "heart.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "heart.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

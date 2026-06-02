@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#a855f7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Mochi & Bloop: Starfall Circus - Custom Sprites</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div id="loadingScreen">
+        <div class="loading-stars">✦</div>
+        <h1>🎪 Starfall Circus</h1>
+        <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loadingBar"></div>
+        </div>
+        <p id="loadingText">Preparando el circo...</p>
+    </div>
+
+    <div id="boss-name">POPPI THE BALLOON CLOWN</div>
+    <div id="boss-bar-container">
+        <div id="boss-bar"></div>
+    </div>
+
+    <div style="position: relative; display: inline-block;">
+        <canvas id="gameCanvas" width="1280" height="620"></canvas>
+        <div id="lives-container"></div>
+    </div>
+
+
+    <!-- UI INSTRUCCIONES
+    <div id="ui">
+        <i class="bi bi-arrow-left"></i> [A/D] o [←/→]: Moverse | <strong>[ESPACIO]: Lanzar Polvo de Estrellas <i
+                class="bi bi-star"></i></strong><br>
+    </div> 
+    -->
+
+    <script src="mecanicas.js"></script>
+
+    <!-- Flash fase angry -->
+    <div id="angryFlash"></div>
+    <div id="angryText">¡POPPI ESTÁ FURIOSA!</div>
+
+    <!-- PAUSA -->
+    <div class="overlay" id="pauseMenu">
+        <div class="menu-panel">
+            <h2 style="color:#e879f9"> Pausado</h2>
+            <p class="subtitle">El circo te espera...</p>
+            <button class="menu-btn btn-primary" onclick="resumeGame()">
+                Reanudar
+            </button>
+            <button class="menu-btn btn-secondary" onclick="restartGame()">
+                Reiniciar
+            </button>
+            <button class="menu-btn btn-ghost" onclick="goToMenu()">
+                Menú principal
+            </button>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div class="overlay" id="gameOverMenu">
+        <div class="menu-panel">
+            <h2 style="color:#f87171">Game Over</h2>
+            <p class="subtitle">Mochi se quedó sin fuerzas...</p>
+            <button class="menu-btn btn-primary" onclick="restartGame()">
+                Reintentar
+            </button>
+            <button class="menu-btn btn-ghost" onclick="goToMenu()">
+                Menú principal
+            </button>
+        </div>
+    </div>
+
+    <!-- VICTORIA -->
+    <div class="overlay" id="winMenu">
+        <div class="menu-panel">
+            <h2 style="color:#86efac">¡Victoria!</h2>
+            <p class="subtitle">¡Mochi derrotó a Poppi!</p>
+            <button class="menu-btn btn-primary" onclick="restartGame()">
+                Jugar de nuevo
+            </button>
+            <button class="menu-btn btn-ghost" onclick="goToMenu()">
+                Menú principal
+            </button>
+        </div>
+    </div>
+
+    <!-- MENÚ PRINCIPAL -->
+    <div class="overlay active" id="mainMenu">
+        <div class="menu-panel">
+            <h2 style="color:#e879f9">Starfall Circus</h2>
+            <p class="subtitle">Mochi & Bloop</p>
+            <button class="menu-btn btn-primary" onclick="startGame()">
+                Jugar
+            </button>
+            <button class="menu-btn btn-secondary" onclick="openSettings()">
+                Configuración
+            </button>
+        </div>
+    </div>
+
+    <!-- CONFIGURACIÓN -->
+    <div class="overlay" id="settingsMenu">
+        <div class="menu-panel">
+            <h2 style="color:#38bdf8"> Configuración</h2>
+            <p class="subtitle">Ajusta tu experiencia</p>
+            <label style="font-family:'Nunito',sans-serif; color:#e2e8f0; font-size:0.95rem">
+                <input type="checkbox" id="sfxToggle" checked style="accent-color:#a855f7; margin-right:8px">
+                Efectos de sonido
+            </label>
+            <br><br>
+            <label style="font-family:'Nunito',sans-serif; color:#e2e8f0; font-size:0.95rem">
+                Tecla de pausa:
+                <strong id="pauseKeyLabel" style="color:#e879f9"> ESC</strong>
+            </label>
+            <br><br>
+            <button class="menu-btn btn-ghost" onclick="closeSettings()">
+                Volver
+            </button>
+        </div>
+    </div>
+
+</body>
+
+</html>

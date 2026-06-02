@@ -1,0 +1,337 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700&display=swap');
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #1a1525;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+}
+
+#boss-bar-container {
+    width: 600px;
+    background-color: #2a203d;
+    border: 2px solid #ff9aa2;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+#boss-bar {
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(90deg, #ff9aa2, #ffb7b2);
+    transition: width 0.1s ease;
+}
+
+#boss-name {
+    color: #ff9aa2;
+    text-align: center;
+    margin: 5px 0;
+    font-weight: bold;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+canvas {
+    background: linear-gradient(180deg, #1d182b 0%, #352a4e 100%);
+    border: 4px solid #ffd166;
+    box-shadow: 0 0 25px rgba(255, 209, 102, 0.2);
+    position: relative;
+    display: block;
+    margin: 0 auto;
+    max-width: 100%;
+}
+
+#ui {
+    margin-top: 15px;
+    color: #ffb7b2;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* ── OVERLAY BASE ── */
+.overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 5, 20, 0.85);
+    backdrop-filter: blur(6px);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-family: 'Fredoka One', cursive;
+}
+
+.overlay.active {
+    display: flex;
+}
+
+/* ── PANEL ── */
+.menu-panel {
+    background: linear-gradient(160deg, #2a1040, #1a0a30);
+    border: 3px solid #c084fc;
+    border-radius: 24px;
+    padding: 40px 50px;
+    text-align: center;
+    box-shadow: 0 0 40px #a855f766, 0 0 80px #6d28d933;
+    min-width: 300px;
+    animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.7);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ── TÍTULOS ── */
+.menu-panel h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.2rem;
+    margin: 0 0 8px;
+    text-shadow: 0 0 20px currentColor;
+}
+
+.menu-panel .subtitle {
+    font-family: 'Nunito', sans-serif;
+    color: white;
+    font-size: 0.95rem;
+    opacity: 0.6;
+    margin-bottom: 28px;
+}
+
+/* ── BOTONES ── */
+.menu-btn {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 13px 0;
+    border: none;
+    border-radius: 50px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    letter-spacing: 0.5px;
+}
+
+.menu-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.menu-btn:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #e879f9, #a855f7);
+    color: #fff;
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, #38bdf8, #6366f1);
+    color: #fff;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #f87171, #dc2626);
+    color: #fff;
+}
+
+.btn-ghost {
+    background: transparent;
+    border: 2px solid #c084fc55;
+    color: #c084fc;
+}
+
+/* ── SHAKE DEL CANVAS ── */
+@keyframes shake {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    20% {
+        transform: translate(-8px, 4px);
+    }
+
+    40% {
+        transform: translate(8px, -4px);
+    }
+
+    60% {
+        transform: translate(-6px, 6px);
+    }
+
+    80% {
+        transform: translate(6px, -2px);
+    }
+}
+
+.shake {
+    animation: shake 0.5s ease;
+}
+
+/* ── FASE ANGRY: flash ── */
+#angryFlash {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle, #ff000055, transparent 70%);
+    pointer-events: none;
+    opacity: 0;
+    z-index: 50;
+    transition: opacity 0.1s;
+}
+
+#angryFlash.active {
+    opacity: 1;
+}
+
+/* ── TEXTO FASE ANGRY ── */
+#angryText {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0);
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    color: #ff4444;
+    text-shadow: 0 0 30px #ff0000, 0 0 60px #ff000088;
+    z-index: 60;
+    pointer-events: none;
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s;
+    opacity: 0;
+    white-space: nowrap;
+}
+
+#angryText.active {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scaleY(1);
+    }
+
+    50% {
+        transform: scaleY(1.4);
+    }
+}
+
+#boss-bar {
+    transform-origin: left center;
+    transition: width 0.1s, background 0.5s;
+}
+
+#lives-container {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+    pointer-events: none;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(4px);
+    padding: 6px 10px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 107, 157, 0.25);
+}
+
+#lives-container img {
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 0 8px #ff6b9d) drop-shadow(0 0 3px #ff6b9d);
+    transition: filter 0.3s, opacity 0.3s;
+}
+
+#lives-container img.empty {
+    filter: grayscale(100%) brightness(0.25);
+    opacity: 0.4;
+}
+
+/* ── PANTALLA DE CARGA ── */
+#loadingScreen {
+    position: fixed;
+    inset: 0;
+    background: #0a0514;
+    z-index: 999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    font-family: 'Fredoka One', cursive;
+    transition: opacity 0.8s ease;
+}
+
+#loadingScreen.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+#loadingScreen h1 {
+    color: #e879f9;
+    font-size: 2.5rem;
+    text-shadow: 0 0 30px #a855f7;
+    margin: 0;
+}
+
+#loadingScreen p {
+    color: #c084fc;
+    font-size: 1rem;
+    font-family: 'Nunito', sans-serif;
+    opacity: 0.7;
+    margin: 0;
+}
+
+.loading-bar-container {
+    width: 260px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+    overflow: hidden;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.loading-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #a855f7, #e879f9);
+    border-radius: 99px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 10px #a855f7;
+}
+
+.loading-stars {
+    font-size: 2rem;
+    animation: spinStars 2s linear infinite;
+}
+
+@keyframes spinStars {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

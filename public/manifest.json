@@ -1,0 +1,22 @@
+{
+    "name": "Velvet Carnival",
+    "short_name": "Velvet Carnival",
+    "description": "Un juego de circo mágico",
+    "start_url": "./public/index.html",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "background_color": "#0a0514",
+    "theme_color": "#a855f7",
+    "icons": [
+        {
+            "src": "./img/heart.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "./img/heart.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}

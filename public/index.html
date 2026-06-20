@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#a855f7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Mochi: Velvet Carnival</title>
+    <link rel="stylesheet" href="styles/styles.css">
+</head>
+
+<body>
+
+    <!-- MENÚ PRINCIPAL -->
+    <canvas id="menuBg"></canvas>
+
+    <div class="scene" id="mainMenuScene">
+        <div class="logo-wrap">
+            <div class="logo-sub">✦ Mochi ✦</div>
+            <div class="logo-title">Velvet Carnival</div>
+        </div>
+
+        <div class="menu-list">
+            <button class="main-menu-btn btn-play" onclick="onPlayBtn(this)">
+                Jugar
+            </button>
+            <button class="main-menu-btn btn-controls-main" onclick="openMenuOverlay('controls-overlay', this)">
+                Controles
+            </button>
+            <hr class="menu-divider">
+            <button class="main-menu-btn btn-settings-main" onclick="openMenuOverlay('settings-overlay', this)">
+                Configuración
+            </button>
+            <button class="main-menu-btn btn-credits-main" onclick="openMenuOverlay('credits-overlay', this)">
+                Créditos
+            </button>
+        </div>
+
+        <div class="footer-text">v1.0 · Velvet Carnival · 2024</div>
+    </div>
+
+    <!-- CONTROLES overlay -->
+    <div class="menu-overlay" id="controls-overlay">
+        <div class="overlay-box">
+            <div class="overlay-title">Controles</div>
+            <div class="key-row">
+                <div class="key-badge"><span class="key">←</span><span class="key">↑</span><span
+                        class="key">↓</span><span class="key">→</span></div>
+                <div class="key-label">Mover a Mochi</div>
+            </div>
+            <div class="key-row">
+                <div class="key-badge"><span class="key">Esp.</span></div>
+                <div class="key-label">Disparar · Atacar</div>
+            </div>
+            <div class="key-row">
+                <div class="key-badge"><span class="key">C</span></div>
+                <div class="key-label">Encoger (esquivar proyectiles)</div>
+            </div>
+            <div class="key-row">
+                <div class="key-badge"><span class="key">P</span></div>
+                <div class="key-label">Pausar el juego</div>
+            </div>
+            <button class="close-btn" onclick="closeMenuOverlay('controls-overlay')">✦ Cerrar ✦</button>
+        </div>
+    </div>
+
+    <!-- CONFIGURACIÓN overlay -->
+    <div class="menu-overlay" id="settings-overlay">
+        <div class="overlay-box">
+            <div class="overlay-title">Configuración</div>
+            <div class="setting-row" style="flex-direction:column; align-items:flex-start; gap:0.5rem;">
+                <span class="setting-label">Volumen de música</span>
+                <input type="range" id="sliderMusic" class="vol-slider" min="0" max="100" value="70">
+            </div>
+            <div class="setting-row"
+                style="flex-direction:column; align-items:flex-start; gap:0.5rem; margin-top:0.5rem;">
+                <span class="setting-label">Volumen de efectos</span>
+                <input type="range" id="sliderSFX" class="vol-slider" min="0" max="100" value="80">
+            </div>
+            <button class="close-btn" id="settingsCloseBtn" onclick="closeMenuOverlay('settings-overlay')">✦ Cerrar
+                ✦</button>
+        </div>
+    </div>
+
+    <!-- CRÉDITOS overlay -->
+    <div class="menu-overlay" id="credits-overlay">
+        <div class="overlay-box">
+            <div class="overlay-title">Créditos</div>
+            <div style="text-align:center; margin-bottom:1rem;">
+                <div style="display:flex; justify-content:center; gap:1.5rem; margin-bottom:1rem;">
+                    <div style="text-align:center;">
+                        <div>
+                            <img src="img/biteForce.png" alt="Logo BiteForce"
+                                style="width: 140px; height: auto; display: block; margin: 0 auto 20px;">
+                        </div>
+                        <div style="color:#ddbfff; font-family:'Fredoka One',cursive; margin-top:0.3rem;">Equipo de
+                            desarrollo BiteForce</div>
+                    </div>
+                </div>
+                <div
+                    style="color:#7060a0; font-size:0.78rem; line-height:1.8; border-top:1px solid rgba(180,130,255,0.15); padding-top:0.8rem;">
+                    Un circo mágico · Una amistad inesperada<br>
+                </div>
+            </div>
+            <button class="close-btn" onclick="closeMenuOverlay('credits-overlay')">✦ Cerrar ✦</button>
+        </div>
+    </div>
+
+    <!-- JUEGO -->
+    <div id="loadingScreen">
+        <div class="loading-stars">✦</div>
+        <h1>🎪 Velvet Carnival</h1>
+        <div class="loading-bar-container">
+            <div class="loading-bar-fill" id="loadingBar"></div>
+        </div>
+        <p id="loadingText">Preparando el circo...</p>
+    </div>
+
+    <div id="game-wrap">
+        <div id="hud-top" style="display:none;">
+            <div id="lives-container"></div>
+            <div id="boss-bar-container">
+                <div id="boss-name">POPPI THE BALLOON CLOWN</div>
+                <div id="boss-bar"></div>
+            </div>
+        </div>
+        <div style="position: relative; display: inline-block;">
+            <canvas id="gameCanvas" width="1280" height="650" style="display:none;"></canvas>
+        </div>
+    </div>
+
+    <script src="scripts/audio.js"></script>
+    <script src="scripts/input.js"></script>
+    <script src="scripts/mecanicas.js"></script>
+
+    <div id="deathFlash"></div>
+    
+    <!-- Flash fase angry -->
+    <div id="angryFlash"></div>
+
+    <div id="angryText">¡POPPI ESTÁ FURIOSA!</div>
+
+    <!-- PAUSA -->
+    <div class="overlay" id="pauseMenu">
+        <div class="menu-panel">
+            <h2 style="color:#e879f9"> Pausado</h2>
+            <p class="subtitle">El circo te espera...</p>
+            <button class="menu-btn btn-primary" onclick="resumeGame()">Reanudar</button>
+            <button class="menu-btn btn-secondary" onclick="restartGame()">Reiniciar</button>
+            <button class="menu-btn btn-ghost" onclick="goToMenu()">Menú principal</button>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div class="overlay" id="gameOverMenu">
+        <div class="end-vignette end-vignette-danger" id="gameOverVignette"></div>
+        <div class="end-particles" id="gameOverParticles"></div>
+        <div class="menu-panel end-panel" style="background:transparent; border:none; box-shadow:none;">
+            <div class="end-portrait">
+                <img src="img/mochiGO.png" id="gameOverPortrait" class="end-portrait-img end-portrait-dizzy" alt="Mochi">
+            </div>
+            <h2 id="gameOverTitle" class="end-title" style="color:#f87171">Game Over</h2>
+            <p class="subtitle end-reveal" id="gameOverSubtitle">Mochi se quedó sin fuerzas...</p>
+            <button class="menu-btn btn-primary end-reveal" id="gameOverBtnPrimary"
+                onclick="restartGame()">Reintentar</button>
+            <button class="menu-btn btn-ghost end-reveal" id="gameOverBtnSecondary" onclick="goToMenu()">Menú
+                principal</button>
+        </div>
+    </div>
+
+    <!-- VICTORIA -->
+    <div class="overlay" id="winMenu">
+        <div class="end-vignette end-vignette-success" id="winVignette"></div>
+        <div class="end-spotlight-sweep"></div>
+        <div class="end-particles" id="winParticles"></div>
+        <div class="menu-panel end-panel" style="background:transparent; border:none; box-shadow:none;">
+            <div class="end-portrait" id="winPortraitWrap">
+                <img src="img/mochi.png" id="winPortrait" class="end-portrait-img end-portrait-happy" alt="Mochi">
+            </div>
+            <h2 id="winTitle" class="end-title" style="color:#86efac">¡Victoria!</h2>
+            <p class="subtitle end-reveal" id="winSubtitle">¡Mochi derrotó a Poppi!</p>
+            <button class="menu-btn btn-primary end-reveal" id="winBtnPrimary" onclick="restartGame()">Jugar de
+                nuevo</button>
+            <button class="menu-btn btn-ghost end-reveal" id="winBtnSecondary" onclick="goToMenu()">Menú
+                principal</button>
+        </div>
+    </div>
+
+    <div id="bossIntroScreen" style="display:none;">
+
+        <div class="curtain" id="curtainLeft">
+            <svg class="curtain-svg" viewBox="0 0 200 400" preserveAspectRatio="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="foldGradL" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#1a0530" />
+                        <stop offset="18%" stop-color="#5b1a7a" />
+                        <stop offset="35%" stop-color="#3a0d4a" />
+                        <stop offset="50%" stop-color="#6d2196" />
+                        <stop offset="65%" stop-color="#3a0d4a" />
+                        <stop offset="82%" stop-color="#5b1a7a" />
+                        <stop offset="100%" stop-color="#250840" />
+                    </linearGradient>
+                    <linearGradient id="shineGradL" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0)" />
+                        <stop offset="20%" stop-color="rgba(255,255,255,0.06)" />
+                        <stop offset="40%" stop-color="rgba(255,255,255,0)" />
+                        <stop offset="60%" stop-color="rgba(255,255,255,0.04)" />
+                        <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+                    </linearGradient>
+                </defs>
+                <rect width="200" height="400" fill="url(#foldGradL)" />
+                <rect width="200" height="400" fill="url(#shineGradL)" />
+                <rect x="30" width="8" height="400" fill="rgba(0,0,0,0.18)" />
+                <rect x="75" width="6" height="400" fill="rgba(0,0,0,0.14)" />
+                <rect x="120" width="8" height="400" fill="rgba(0,0,0,0.18)" />
+                <rect x="165" width="6" height="400" fill="rgba(0,0,0,0.12)" />
+                <rect x="50" width="3" height="400" fill="rgba(255,255,255,0.07)" />
+                <rect x="95" width="2" height="400" fill="rgba(255,255,255,0.05)" />
+                <rect x="145" width="3" height="400" fill="rgba(255,255,255,0.07)" />
+                <rect x="192" width="8" height="400" fill="rgba(0,0,0,0.35)" />
+            </svg>
+        </div>
+
+        <div class="curtain" id="curtainRight">
+            <svg class="curtain-svg" viewBox="0 0 200 400" preserveAspectRatio="none"
+                xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                    <linearGradient id="foldGradR" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="#250840" />
+                        <stop offset="18%" stop-color="#5b1a7a" />
+                        <stop offset="35%" stop-color="#3a0d4a" />
+                        <stop offset="50%" stop-color="#6d2196" />
+                        <stop offset="65%" stop-color="#3a0d4a" />
+                        <stop offset="82%" stop-color="#5b1a7a" />
+                        <stop offset="100%" stop-color="#1a0530" />
+                    </linearGradient>
+                    <linearGradient id="shineGradR" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stop-color="rgba(255,255,255,0)" />
+                        <stop offset="20%" stop-color="rgba(255,255,255,0.04)" />
+                        <stop offset="40%" stop-color="rgba(255,255,255,0)" />
+                        <stop offset="60%" stop-color="rgba(255,255,255,0.06)" />
+                        <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+                    </linearGradient>
+                </defs>
+                <rect width="200" height="400" fill="url(#foldGradR)" />
+                <rect width="200" height="400" fill="url(#shineGradR)" />
+                <rect x="30" width="8" height="400" fill="rgba(0,0,0,0.18)" />
+                <rect x="75" width="6" height="400" fill="rgba(0,0,0,0.14)" />
+                <rect x="120" width="8" height="400" fill="rgba(0,0,0,0.18)" />
+                <rect x="165" width="6" height="400" fill="rgba(0,0,0,0.12)" />
+                <rect x="50" width="3" height="400" fill="rgba(255,255,255,0.07)" />
+                <rect x="95" width="2" height="400" fill="rgba(255,255,255,0.05)" />
+                <rect x="145" width="3" height="400" fill="rgba(255,255,255,0.07)" />
+                <rect x="8" width="8" height="400" fill="rgba(0,0,0,0.35)" />
+            </svg>
+        </div>
+
+        <div class="intro-spotlight"></div>
+
+        <div class="intro-content">
+            <div class="intro-boss-img" id="introBossImg">
+                <img src="img/lady.png" alt="Lady Twinkle">
+            </div>
+
+            <div class="intro-panel">
+                <div class="intro-heading intro-reveal" id="introHeading">
+                    <p class="intro-pre" id="introTextPre"></p>
+                    <p class="intro-sub" id="introTextSub"></p>
+                </div>
+
+                <h1 class="intro-name intro-reveal" id="introTextName"></h1>
+
+                <span class="intro-stars intro-reveal" id="introStars"></span>
+
+                <div class="intro-chips" id="introChips"></div>
+
+                <p class="intro-desc intro-reveal" id="introTextDesc">
+                    <span id="introDescText"></span><span class="intro-cursor" id="introCursor"></span>
+                </p>
+
+                <div class="intro-continue intro-reveal" id="introContinue">
+                    <div class="intro-progress-track">
+                        <div class="intro-progress-fill" id="introProgressFill"></div>
+                    </div>
+                    <p class="intro-skip">Presiona cualquier tecla o clic para continuar</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="introIrisOverlay"></div>
+        <div id="introDecor"></div>
+    </div>
+
+    <script src="scripts/menu.js"></script>
+</body>
+
+</html>

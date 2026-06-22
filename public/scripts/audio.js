@@ -41,12 +41,23 @@ const AudioSystem = (() => {
         if (currentMusic) currentMusic.volume = val;
     }
 
-    function playSFX(name) {
-        if (name !== "click") return; // solo click habilitado
-        const sfx = new Audio("sounds/clickButton.wav");
+    const sfx = {
+        buttonPush: new Audio("sounds/earth_cord__button-push.wav"),
+        lose: new Audio("sounds/littlerobotsoundfactory__jingle_lose_00.wav"),
+        win: new Audio("sounds/matustrm__completed.wav"),
+    };
+
+    function getSFXVolume() {
         const slider = document.getElementById("sliderSFX");
-        sfx.volume = slider ? slider.value / 100 : 0.8;
-        sfx.play().catch(() => { });
+        return slider ? slider.value / 100 : 0.8;
+    }
+
+    function playSFX(name) {
+        const sound = sfx[name];
+        if (!sound) return;
+        sound.currentTime = 0;
+        sound.volume = getSFXVolume();
+        sound.play().catch(() => { });
     }
 
     document.addEventListener("DOMContentLoaded", () => {
@@ -56,6 +67,11 @@ const AudioSystem = (() => {
                 setMusicVolume(sliderMusic.value / 100);
             });
         }
+    });
+
+    document.addEventListener("click", (e) => {
+        const btn = e.target.closest(".menu-btn, .main-menu-btn, .close-btn");
+        if (btn) playSFX("buttonPush");
     });
 
     return { playMusic, stopMusic, playSFX };

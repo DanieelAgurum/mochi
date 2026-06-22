@@ -147,8 +147,8 @@ const BOSS_INTROS = {
         img: "img/poppi.png",
         name: "Poppi the Balloon Clown",
         pre: "¡Damas y caballeros!",
-        sub: "El circo les presenta...",
-        desc: '"Un payaso que nunca deja de sonreír... ni siquiera cuando explota."',
+        sub: "Esta noche, el circo tiene un número especial...",
+        desc: '"Dicen que Poppi nunca ha terminado un show. Sus globos simplemente... explotan antes.',
         chips: [
             { label: "Globos bomba" },
             { label: "Inflado" },
@@ -165,13 +165,13 @@ const BOSS_INTROS = {
     lady: {
         img: "img/lady.png",
         name: "Lady Twinkle",
-        pre: "¡Damas y caballeros!",
-        sub: "El circo les presenta...",
-        desc: '"La bailarina eterna de la caja musical. Gira sin parar... y nunca olvida una cara."',
+        pre: "Silencio, por favor.",
+        sub: "La caja musical ha comenzado a girar.",
+        desc: '"Lleva bailando desde antes de que el circo abriera. Nadie sabe cuándo fue la última vez que se detuvo."',
         chips: [
             { label: "Patrones circulares" },
             { label: "Notas musicales" },
-            { label: "Plataformas rítmicas" }
+            { label: "Pista de baile" }
         ],
         decor: [
             { symbol: "♩", left: "12%", top: "65%", delay: "0s" },

@@ -10,6 +10,10 @@ let gamePaused = false;
 let lives = 3;
 let fightStartTime = 0;  // ← nuevo
 let damagesTaken = 0;    // ← nuevo
+let currentLevelIndex = 0;
+let boss = null;
+let musicNotes = [];
+let hasNextLevel = false;
 
 let starDustProjectiles = [];
 let balloons = [];
@@ -25,12 +29,24 @@ const balloonPurpleImg = new Image(); balloonPurpleImg.src = "img/globo_morado.p
 const balloonPinkImg = new Image(); balloonPinkImg.src = "img/globo_rosa.png";
 const heartImg = new Image(); heartImg.src = "img/heart.png";
 const bgImg = new Image(); bgImg.src = "img/circo.png";
+const mochiSustoImg = new Image(); mochiSustoImg.src = "img/mochi_susto_frame.png";
+const mochiLlantoImg = new Image(); mochiLlantoImg.src = "img/mochi_llanto_frame.png";
+const mochiColapsoImg = new Image(); mochiColapsoImg.src = "img/mochi_colapso_frame.png";
+const mochiSorpresaImg = new Image(); mochiSorpresaImg.src = "img/mochi_sorpresa_frame.png";
+const mochiSaltoImg = new Image(); mochiSaltoImg.src = "img/mochi_salto_frame.png";
+const mochiTriunfoImg = new Image(); mochiTriunfoImg.src = "img/mochi_triunfo_frame.png";
+const ladyImg = new Image(); ladyImg.src = "img/lady.png";
+const ladyAngryImg = new Image(); ladyAngryImg.src = "img/ladyAngry.png";
+const ladyDeadImg = new Image(); ladyDeadImg.src = "img/ladyDead.png";
+const notaAzulImg = new Image(); notaAzulImg.src = "img/notaAzul.png";
+const notaRosaImg = new Image(); notaRosaImg.src = "img/notaRosa.png";
+const ladyArenaBg = new Image(); ladyArenaBg.src = "img/cajaMusical.png";
 
 // ── MOCHI ──
 const mochi = {
     x: 640, y: 530,
-    width: 60, height: 70,
-    normalWidth: 60, normalHeight: 70,
+    width: 55, height: 70,
+    normalWidth: 55, normalHeight: 70,
     radius: 20, normalRadius: 20, smallRadius: 14,
     vx: 0, vy: 0,
     accel: 0.8, friction: 0.92, maxSpeed: 7.5,
@@ -40,6 +56,7 @@ const mochi = {
 };
 
 const POPPI_MAX_HP = 1000;
+const LADY_MAX_HP = 1200;
 
 // ── POPPI ──
 const poppi = {
@@ -63,6 +80,39 @@ const poppi = {
     forcedGrabCount: 0
 };
 
+const lady = {
+    x: 0, y: 0,
+    width: 100, height: 150,
+    radius: 42,
+    hp: LADY_MAX_HP,
+    phase: 1,
+    state: "ORBIT",
+    stateTimer: 0,
+    shootTimer: 0,
+    rhythmTimer: 0,
+    isImmune: false,
+    orbitCenterX: 640,
+    orbitCenterY: 220,
+    orbitRadiusX: 310,
+    orbitRadiusY: 160,
+    orbitSpeed: 0.012,
+    orbitAngle: 0,
+};
+
+const DANCE_GRID_COLS = 5;
+const DANCE_GRID_ROWS = 3;
+let danceFloor = { cells: [], state: "idle", timer: 0, warnDuration: 45, blinkDuration: 30 };
+
+const LEVELS = [
+    { key: "poppi", boss: poppi, maxHp: POPPI_MAX_HP, name: "Poppi the Balloon Clown", bg: bgImg, music: "combat" },
+    { key: "lady", boss: lady, maxHp: LADY_MAX_HP, name: "Lady Twinkle", bg: ladyArenaBg, music: "lady" }
+];
+
+const BOSS_HANDLERS = {
+    poppi: { updateMovement: updatePoppiMovement, attack: bossAttackPatterns, draw: drawPoppi, reset: resetPoppi },
+    lady: { updateMovement: updateLadyMovement, attack: ladyAttackPatterns, draw: drawLady, reset: resetLady }
+};
+
 // ── FULLSCREEN ──
 function requestFullscreen() {
     const el = document.documentElement;
@@ -80,9 +130,58 @@ function showOverlay(id) {
 }
 
 // ── Efectos pantalla de fin ──
+const GAMEOVER_FRAME_TIMES = [0, 600, 1300]; // susto, llanto, colapso (ms)
+const GAMEOVER_TEXT_DELAY = 500;
+
+const WIN_FRAME_TIMES = [0, 500, 1100]; // sorpresa, salto, triunfo (ms)
+const WIN_TEXT_DELAY = 1150; // arranca justo cuando llega la pose de triunfo
+
+function playGameOverPortraitSequence() {
+    const portrait = document.getElementById('gameOverPortrait');
+    const frames = [
+        'img/mochi_susto_frame.png',
+        'img/mochi_llanto_frame.png',
+        'img/mochi_colapso_frame.png'
+    ];
+
+    portrait.classList.remove('end-portrait-dizzy');
+    portrait.src = frames[0];
+
+    setTimeout(() => { portrait.src = frames[1]; }, GAMEOVER_FRAME_TIMES[1]);
+    setTimeout(() => {
+        portrait.src = frames[2];
+        portrait.classList.add('end-portrait-dizzy');
+    }, GAMEOVER_FRAME_TIMES[2]);
+}
+
+function playWinPortraitSequence() {
+    const portrait = document.getElementById('winPortrait');
+    const frames = [
+        'img/mochi_sorpresa_frame.png',
+        'img/mochi_salto_frame.png',
+        'img/mochi_triunfo_frame.png'
+    ];
+
+    portrait.classList.remove('end-portrait-happy');
+    portrait.src = frames[0];
+
+    setTimeout(() => { portrait.src = frames[1]; }, WIN_FRAME_TIMES[1]);
+    setTimeout(() => {
+        portrait.src = frames[2];
+        portrait.classList.add('end-portrait-happy');
+    }, WIN_FRAME_TIMES[2]);
+}
+
+const REVEAL_OFFSETS = {
+    gameover: { title: 100, subtitle: 250, btn1: 400, btn2: 550 },
+    win: { title: 150, subtitle: 300, stats: 500, btn1: 750, btn2: 900 }
+};
+
 function playEndScreenEffects(type) {
     const isWin = type === 'win';
     const prefix = isWin ? 'win' : 'gameOver';
+    const portraitDelay = isWin ? WIN_TEXT_DELAY : GAMEOVER_TEXT_DELAY;
+    const offs = REVEAL_OFFSETS[isWin ? 'win' : 'gameover'];
 
     const title = document.getElementById(prefix + 'Title');
     const subtitle = document.getElementById(prefix + 'Subtitle');
@@ -90,7 +189,6 @@ function playEndScreenEffects(type) {
     const btn2 = document.getElementById(prefix + 'BtnSecondary');
     const particles = document.getElementById(prefix + 'Particles');
 
-    // Reset
     title.classList.remove('show');
     subtitle.classList.remove('show');
     btn1.classList.remove('show');
@@ -98,11 +196,12 @@ function playEndScreenEffects(type) {
     particles.innerHTML = '';
     void title.offsetWidth;
 
-    // Quita resumen anterior si existía
     const oldStats = document.getElementById('winStats');
     if (oldStats) oldStats.remove();
 
-    // Partículas de fondo
+    if (isWin) playWinPortraitSequence();
+    else playGameOverPortraitSequence();
+
     const count = isWin ? 18 : 10;
     for (let i = 0; i < count; i++) {
         const p = document.createElement('div');
@@ -118,7 +217,6 @@ function playEndScreenEffects(type) {
         particles.appendChild(p);
     }
 
-    // Chispas desde Mochi (solo victoria)
     if (isWin) {
         const wrap = document.getElementById('winPortraitWrap');
         function burstSparkles() {
@@ -138,48 +236,44 @@ function playEndScreenEffects(type) {
         const si = setInterval(burstSparkles, 700);
         setTimeout(() => clearInterval(si), 6000);
 
-        // Resumen de estadísticas
         const elapsed = Math.floor((Date.now() - fightStartTime) / 1000);
         const mins = Math.floor(elapsed / 60);
         const secs = elapsed % 60;
-        const timeStr = mins > 0
-            ? `${mins}m ${secs}s`
-            : `${secs}s`;
+        const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
 
         const stats = document.createElement('div');
         stats.id = 'winStats';
+        stats.className = 'win-stats-grid end-reveal';
         stats.innerHTML = `
-            <div class="win-stat end-reveal" id="winStat1">
-                <span class="win-stat-icon">⏱</span>
+            <div class="win-stat-card">
+                <div class="win-stat-icon-circle win-stat-icon-time">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+                </div>
                 <span class="win-stat-label">Tiempo</span>
                 <span class="win-stat-value">${timeStr}</span>
             </div>
-            <div class="win-stat end-reveal" id="winStat2">
-                <span class="win-stat-icon">💥</span>
-                <span class="win-stat-label">Golpes recibidos</span>
-                <span class="win-stat-value">${damagesTaken}</span>
-            </div>
-            <div class="win-stat end-reveal" id="winStat3">
-                <span class="win-stat-icon">❤️</span>
+            <div class="win-stat-card">
+                <div class="win-stat-icon-circle win-stat-icon-life">
+                    <svg viewBox="0 0 24 24" fill="#f87171"><path d="M12 21s-7.5-4.6-10-9.3C0.3 8.4 2 4.5 6 4c2.2-.3 4 1 6 3.5C14 5 15.8 3.7 18 4c4 .5 5.7 4.4 4 7.7-2.5 4.7-10 9.3-10 9.3z"/></svg>
+                </div>
                 <span class="win-stat-label">Vidas restantes</span>
-                <span class="win-stat-value">${lives}</span>
+                <span class="win-stat-value">${lives} / ${MAX_LIVES}</span>
             </div>
         `;
 
-        // Inserta el resumen justo antes de los botones
         btn1.parentNode.insertBefore(stats, btn1);
+        const nextBtn = document.getElementById('winBtnNextLevel');
+        nextBtn.style.display = hasNextLevel ? '' : 'none';
+        nextBtn.classList.remove('show');
+        if (hasNextLevel) setTimeout(() => nextBtn.classList.add('show'), portraitDelay + offs.btn1);
 
-        // Revelado escalonado de estadísticas
-        setTimeout(() => document.getElementById('winStat1')?.classList.add('show'), 900);
-        setTimeout(() => document.getElementById('winStat2')?.classList.add('show'), 1100);
-        setTimeout(() => document.getElementById('winStat3')?.classList.add('show'), 1300);
+        setTimeout(() => stats.classList.add('show'), portraitDelay + offs.stats);
     }
 
-    // Revelado escalonado base
-    setTimeout(() => title.classList.add('show'), 100);
-    setTimeout(() => subtitle.classList.add('show'), 500);
-    setTimeout(() => btn1.classList.add('show'), isWin ? 1500 : 700);
-    setTimeout(() => btn2.classList.add('show'), isWin ? 1700 : 900);
+    setTimeout(() => title.classList.add('show'), portraitDelay + offs.title);
+    setTimeout(() => subtitle.classList.add('show'), portraitDelay + offs.subtitle);
+    setTimeout(() => btn1.classList.add('show'), portraitDelay + offs.btn1);
+    setTimeout(() => btn2.classList.add('show'), portraitDelay + offs.btn2);
 }
 
 // ── Secuencia de impacto al perder ──
@@ -242,6 +336,10 @@ function startGame() {
 
 function startGameWithoutFullscreen() {
     resetState();
+    document.getElementById('hud-top').style.display = 'flex';
+    document.getElementById('lives-container').style.display = 'flex';
+    document.getElementById('boss-bar-container').style.display = 'block';
+    document.getElementById('boss-name').style.display = 'block';
     gameActive = true;
     gamePaused = false;
     showOverlay(null);
@@ -249,15 +347,37 @@ function startGameWithoutFullscreen() {
 }
 
 function restartGame() {
+    currentLevelIndex = 0;
     requestFullscreen();
-    resetState();
-    gameActive = true;
-    gamePaused = false;
     showOverlay(null);
-    AudioSystem.playMusic("combat");
+    AudioSystem.stopMusic();
+    showBossIntro(LEVELS[0].key, () => startGameWithoutFullscreen());
+}
+
+function retryLevel() {
+    requestFullscreen();
+    showOverlay(null);
+    AudioSystem.stopMusic();
+    startGameWithoutFullscreen();
+    AudioSystem.playMusic(LEVELS[currentLevelIndex].music);
+}
+
+function handleLevelCleared() {
+    hasNextLevel = currentLevelIndex < LEVELS.length - 1;
+    document.getElementById('winSubtitle').textContent = `¡Mochi derrotó a ${LEVELS[currentLevelIndex].name}!`;
+    showOverlay("winMenu");
+}
+
+function goToNextLevel() {
+    currentLevelIndex++;
+    showOverlay(null);
+    gameActive = false;
+    AudioSystem.stopMusic();
+    showBossIntro(LEVELS[currentLevelIndex].key, () => startGameWithoutFullscreen());
 }
 
 function goToMenu() {
+    currentLevelIndex = 0;
     gameActive = false;
     gamePaused = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -289,10 +409,10 @@ function openSettings() { showOverlay("settingsMenu"); }
 function closeSettings() { showOverlay("mainMenu"); }
 
 function resetState() {
-    document.getElementById('hud-top').style.display = 'flex';
-    document.getElementById('lives-container').style.display = 'flex';
-    document.getElementById('boss-bar-container').style.display = 'block';
-    document.getElementById('boss-name').style.display = 'block';
+    document.getElementById('hud-top').style.display = 'none';
+    document.getElementById('lives-container').style.display = 'none';
+    document.getElementById('boss-bar-container').style.display = 'none';
+    document.getElementById('boss-name').style.display = 'none';
     canvas.style.display = 'block';
     lives = 3;
     renderHearts();
@@ -302,36 +422,57 @@ function resetState() {
     starDustProjectiles = [];
     balloons = [];
     homingBalloons = [];
+    musicNotes = [];
 
     mochi.x = 640; mochi.y = 530;
     mochi.vx = 0; mochi.vy = 0;
     mochi.invulnerable = false; mochi.invulnerableTimer = 0;
     mochi.shootCooldown = 0;
 
-    poppi.x = 300; poppi.y = 100;
-    poppi.vx = 4; poppi.vy = 3;
-    poppi.hp = POPPI_MAX_HP;
-    poppi.phase = 1;
-    poppi.width = poppi.baseWidth; poppi.height = poppi.baseHeight;
-    poppi.radius = 45;
-    poppi.state = "NORMAL";
-    poppi.stateTimer = 0; poppi.shootTimer = 0; poppi.homingTimer = 0;
-    poppi.isAngryPhase = false;
-    poppi.grabTimer = 0; poppi.windupTimer = 0; poppi.stunTimer = 0;
-    poppi.isImmune = false; poppi.immuneTimer = 0; poppi.forcedGrabCount = 0;
+    // poppi.x = 300; poppi.y = 100;
+    // poppi.vx = 4; poppi.vy = 3;
+    // poppi.hp = POPPI_MAX_HP;
+    // poppi.phase = 1;
+    // poppi.width = poppi.baseWidth; poppi.height = poppi.baseHeight;
+    // poppi.radius = 45;
+    // poppi.state = "NORMAL";
+    // poppi.stateTimer = 0; poppi.shootTimer = 0; poppi.homingTimer = 0;
+    // poppi.isAngryPhase = false;
+    // poppi.grabTimer = 0; poppi.windupTimer = 0; poppi.stunTimer = 0;
+    // poppi.isImmune = false; poppi.immuneTimer = 0; poppi.forcedGrabCount = 0;
+
+    const level = LEVELS[currentLevelIndex];
+    boss = level.boss;
+    BOSS_HANDLERS[level.key].reset();
+    document.getElementById("boss-name").textContent = level.name;
+
     fightStartTime = Date.now(); // ← nuevo
     damagesTaken = 0;            // ← nuevo
 }
 
 // ── TRANSICIÓN DE FASE ──
 function triggerPhaseTransition(newPhase) {
-    poppi.phase = newPhase;
-    poppi.isImmune = true;
-    poppi.forcedGrabCount = 0;
-    poppi.state = "GRAB_WINDUP";
-    poppi.windupTimer = 100;
-    poppi.vx = 0;
-    poppi.vy = 0;
+    // poppi.phase = newPhase;
+    // poppi.isImmune = true;
+    // poppi.forcedGrabCount = 0;
+    // poppi.state = "GRAB_WINDUP";
+    // poppi.windupTimer = 100;
+    // poppi.vx = 0;
+    // poppi.vy = 0;
+
+    boss.phase = newPhase;
+    boss.isImmune = true;
+
+    if (LEVELS[currentLevelIndex].key === "poppi") {
+        poppi.forcedGrabCount = 0;
+        poppi.state = "GRAB_WINDUP";
+        poppi.windupTimer = 100;
+        poppi.vx = 0; poppi.vy = 0;
+    } else {
+        lady.state = "PHASE_SHIFT";
+        lady.stateTimer = 0;
+        setTimeout(() => { lady.isImmune = false; }, 1800);
+    }
 
     canvas.classList.add("shake");
     setTimeout(() => canvas.classList.remove("shake"), 700);
@@ -340,9 +481,11 @@ function triggerPhaseTransition(newPhase) {
     const text = document.getElementById("angryText");
 
     // Texto diferente según fase
-    text.textContent = newPhase === 2
-        ? "¡POPPI ESTÁ FURIOSA!"
-        : "¡POPPI ESTÁ DESESPERADA!";
+    const phaseTexts = {
+        poppi: { 2: "¡LOS GLOBOS NO PARAN DE EXPLOTAR!", 3: "¡POPPI SE DESINFLA... DE RABIA!" },
+        lady: { 2: "¡LADY ACELERA EL COMPÁS!", 3: "¡ÚLTIMO VALS... O LO QUE QUEDA DE ÉL!" }
+    };
+    text.textContent = phaseTexts[LEVELS[currentLevelIndex].key][newPhase];
 
     // Color del flash diferente en fase 3
     flash.style.background = newPhase === 3
@@ -366,7 +509,7 @@ function triggerPhaseTransition(newPhase) {
     setTimeout(() => text.classList.remove("active"), 2500);
 
     // Fase 2: activa angry
-    if (newPhase === 2) poppi.isAngryPhase = true;
+    if (newPhase === 2 && LEVELS[currentLevelIndex].key === "poppi") poppi.isAngryPhase = true;
 }
 
 // ── MOVIMIENTO MOCHI ──
@@ -520,12 +663,57 @@ function updatePoppiMovement() {
     }
 }
 
+function updateLadyMovement() {
+    if (lady.state === "PHASE_SHIFT") {
+        lady.stateTimer++;
+        const shake = Math.sin(Date.now() * 0.15) * 4;
+        const baseX = lady.orbitCenterX + Math.cos(lady.orbitAngle) * lady.orbitRadiusX - lady.width / 2;
+        const baseY = lady.orbitCenterY + Math.sin(lady.orbitAngle) * lady.orbitRadiusY - lady.height / 2;
+        lady.x = baseX + shake;
+        lady.y = baseY;
+        if (lady.stateTimer > 60) lady.state = "ORBIT";
+        return;
+    }
+    const speed = lady.phase === 3 ? 0.026 : lady.phase === 2 ? 0.019 : lady.orbitSpeed;
+    lady.orbitAngle += speed;
+    lady.x = lady.orbitCenterX + Math.cos(lady.orbitAngle) * lady.orbitRadiusX - lady.width / 2;
+    lady.y = lady.orbitCenterY + Math.sin(lady.orbitAngle) * lady.orbitRadiusY - lady.height / 2;
+}
+
+function resetPoppi() {
+    poppi.x = 300; poppi.y = 100;
+    poppi.vx = 4; poppi.vy = 3;
+    poppi.hp = POPPI_MAX_HP;
+    poppi.phase = 1;
+    poppi.width = poppi.baseWidth; poppi.height = poppi.baseHeight;
+    poppi.radius = 45;
+    poppi.state = "NORMAL";
+    poppi.stateTimer = 0; poppi.shootTimer = 0; poppi.homingTimer = 0;
+    poppi.isAngryPhase = false;
+    poppi.grabTimer = 0; poppi.windupTimer = 0; poppi.stunTimer = 0;
+    poppi.isImmune = false; poppi.immuneTimer = 0; poppi.forcedGrabCount = 0;
+}
+
+function resetLady() {
+    lady.hp = LADY_MAX_HP;
+    lady.phase = 1;
+    lady.state = "ORBIT";
+    lady.stateTimer = 0; lady.shootTimer = 0; lady.rhythmTimer = 0;
+    lady.isImmune = false;
+    lady.orbitAngle = 0;
+    lady.x = lady.orbitCenterX - lady.width / 2;
+    lady.y = lady.orbitCenterY - lady.height / 2;
+    danceFloor.cells = [];
+    danceFloor.state = "idle";
+    danceFloor.timer = 0;
+}
+
 // ── SHRINK ──
 function updateShrinkMode() {
     const _gp = getGamepad();
     if (keys["C"] || keys["c"] || (_gp && _gp.buttons[4]?.pressed)) { // LB
         mochi.isShrunk = true;
-        mochi.width = 55; mochi.height = 55;
+        mochi.width = 45; mochi.height = 55;
         mochi.radius = mochi.smallRadius;
         mochi.maxSpeed = 9;
     } else {
@@ -635,6 +823,74 @@ function bossAttackPatterns() {
     }
 }
 
+function ladyAttackPatterns() {
+    lady.shootTimer++;
+    lady.rhythmTimer++;
+
+    const cooldown = lady.phase === 3 ? 45 : lady.phase === 2 ? 60 : 75;
+    if (lady.shootTimer > cooldown) {
+        lady.shootTimer = 0;
+        const count = lady.phase === 3 ? 10 : lady.phase === 2 ? 7 : 5;
+        const speed = lady.phase === 3 ? 4.5 : 3.5;
+        for (let i = 0; i < count; i++) {
+            const angle = (Math.PI * 2 / count) * i;
+            musicNotes.push({
+                x: lady.x + lady.width / 2, y: lady.y + lady.height / 2,
+                radius: 14, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, phase: lady.phase
+            });
+        }
+    }
+
+    const rhythmCooldown = lady.phase === 3 ? 220 : lady.phase === 2 ? 260 : 320;
+    if (lady.rhythmTimer > rhythmCooldown && danceFloor.state === "idle") {
+        lady.rhythmTimer = 0;
+        const totalCells = DANCE_GRID_COLS * DANCE_GRID_ROWS;
+        const dangerCount = lady.phase === 3 ? 9 : lady.phase === 2 ? 7 : 5;
+        const warnTime = lady.phase === 3 ? 28 : lady.phase === 2 ? 36 : 45;
+        const idxs = [];
+        while (idxs.length < dangerCount) {
+            const r = Math.floor(Math.random() * totalCells);
+            if (!idxs.includes(r)) idxs.push(r);
+        }
+        danceFloor.cells = idxs;
+        danceFloor.warnDuration = warnTime;
+        danceFloor.state = "warn";
+        danceFloor.timer = 0;
+    }
+
+    if (danceFloor.state === "warn") {
+        danceFloor.timer++;
+        if (danceFloor.timer > danceFloor.warnDuration) { danceFloor.state = "blink"; danceFloor.timer = 0; }
+    } else if (danceFloor.state === "blink") {
+        danceFloor.timer++;
+        if (danceFloor.timer > danceFloor.blinkDuration) { danceFloor.state = "danger"; danceFloor.timer = 0; }
+    } else if (danceFloor.state === "danger") {
+        danceFloor.timer++;
+        if (danceFloor.timer === 1) checkDanceFloorHit();
+        if (danceFloor.timer > 20) { danceFloor.state = "idle"; danceFloor.cells = []; }
+    }
+
+    if (danceFloor.state === "warn") {
+        danceFloor.timer++;
+        if (danceFloor.timer > 45) { danceFloor.state = "danger"; danceFloor.timer = 0; }
+    } else if (danceFloor.state === "danger") {
+        danceFloor.timer++;
+        if (danceFloor.timer === 1) checkDanceFloorHit();
+        if (danceFloor.timer > 20) { danceFloor.state = "idle"; danceFloor.cells = []; }
+    }
+}
+
+function checkDanceFloorHit() {
+    const cellW = canvas.width / DANCE_GRID_COLS;
+    const cellH = canvas.height / DANCE_GRID_ROWS;
+    const mochiCX = mochi.x + mochi.width / 2;
+    const mochiCY = mochi.y + mochi.height / 2;
+    const col = Math.floor(mochiCX / cellW);
+    const row = Math.floor(mochiCY / cellH);
+    const idx = row * DANCE_GRID_COLS + col;
+    if (danceFloor.cells.includes(idx)) handleMochiDamage();
+}
+
 // ── CAMBIO DE ESTADO BOSS ──
 function switchBossState() {
     poppi.stateTimer = 0;
@@ -678,6 +934,7 @@ function handleMochiDamage() {
     if (lives <= 0) {
         gamePaused = true;   // ← detiene update() pero draw() sigue corriendo
         AudioSystem.stopMusic();
+        AudioSystem.playSFX("lose");
         triggerGameOverSequence();
     }
 }
@@ -690,7 +947,7 @@ function update() {
 
     updateMochiPhysics();
     updateShrinkMode();
-    updatePoppiMovement();
+    BOSS_HANDLERS[LEVELS[currentLevelIndex].key].updateMovement();
 
     if (mochi.invulnerable) {
         mochi.invulnerableTimer--;
@@ -723,40 +980,38 @@ function update() {
         p.x += p.vx;
         p.y += p.vy;
 
-        let dx = p.x - (poppi.x + poppi.width / 2);
-        let dy = p.y - (poppi.y + poppi.height / 2);
+        let dx = p.x - (boss.x + boss.width / 2);
+        let dy = p.y - (boss.y + boss.height / 2);
 
-        if (Math.sqrt(dx * dx + dy * dy) < p.radius + poppi.radius) {
+        if (Math.sqrt(dx * dx + dy * dy) < p.radius + boss.radius) {
             starDustProjectiles.splice(i, 1);
 
-            if (!poppi.isImmune) {
-                poppi.hp -= 100;
-                bossBar.style.width = (poppi.hp / POPPI_MAX_HP) * 100 + "%";
+            if (!boss.isImmune) {
+                const maxHp = LEVELS[currentLevelIndex].maxHp;
+                boss.hp -= 100;
+                bossBar.style.width = (boss.hp / maxHp) * 100 + "%";
 
-                if (poppi.hp > POPPI_MAX_HP * 0.6) {
+                if (boss.hp > maxHp * 0.6) {
                     bossBar.style.background = "linear-gradient(90deg, #86efac, #4ade80)";
-                } else if (poppi.hp > POPPI_MAX_HP * 0.3) {
+                } else if (boss.hp > maxHp * 0.3) {
                     bossBar.style.background = "linear-gradient(90deg, #fde68a, #f59e0b)";
                 } else {
                     bossBar.style.background = "linear-gradient(90deg, #fca5a5, #ef4444)";
                 }
 
-                // Transición fase 1 → 2 al 66%
-                if (poppi.hp <= POPPI_MAX_HP * 0.66 && poppi.phase === 1) {
+                if (boss.hp <= maxHp * 0.66 && boss.phase === 1) {
                     triggerPhaseTransition(2);
                     bossBar.style.animation = "pulse 0.5s ease 3";
                 }
-
-                // Transición fase 2 → 3 al 33%
-                if (poppi.hp <= POPPI_MAX_HP * 0.33 && poppi.phase === 2) {
+                if (boss.hp <= maxHp * 0.33 && boss.phase === 2) {
                     triggerPhaseTransition(3);
                     bossBar.style.animation = "pulse 0.5s ease 4";
                 }
-
-                if (poppi.hp <= 0) {
+                if (boss.hp <= 0) {
                     gameActive = false;
                     AudioSystem.stopMusic();
-                    showOverlay("winMenu");
+                    AudioSystem.playSFX("win");
+                    handleLevelCleared();
                 }
             }
             continue;
@@ -767,15 +1022,13 @@ function update() {
     }
 
     // ── Estados boss ──
-    poppi.stateTimer++;
-    if (poppi.stateTimer > 300
-        && poppi.state !== "ANGRY_GRAB"
-        && poppi.state !== "GRAB_WINDUP"
-        && poppi.state !== "GRAB_STUN") {
-        switchBossState();
+    if (LEVELS[currentLevelIndex].key === "poppi") {
+        poppi.stateTimer++;
+        if (poppi.stateTimer > 300 && poppi.state !== "ANGRY_GRAB" && poppi.state !== "GRAB_WINDUP" && poppi.state !== "GRAB_STUN") {
+            switchBossState();
+        }
     }
-
-    bossAttackPatterns();
+    BOSS_HANDLERS[LEVELS[currentLevelIndex].key].attack();
 
     // ── Globos normales ──
     let mochiCX = mochi.x + mochi.width / 2;
@@ -827,12 +1080,27 @@ function update() {
         }
     }
 
+    for (let i = musicNotes.length - 1; i >= 0; i--) {
+        let n = musicNotes[i];
+        n.x += n.vx; n.y += n.vy;
+
+        let ndx = n.x - mochiCX, ndy = n.y - mochiCY;
+        if (Math.sqrt(ndx * ndx + ndy * ndy) < n.radius + mochi.radius) {
+            musicNotes.splice(i, 1);
+            handleMochiDamage();
+            continue;
+        }
+        if (n.y < -50 || n.y > canvas.height + 50 || n.x < -50 || n.x > canvas.width + 50) {
+            musicNotes.splice(i, 1);
+        }
+    }
+
     // ── Colisión directa Poppi-Mochi ──
-    let bossCX = poppi.x + poppi.width / 2;
-    let bossCY = poppi.y + poppi.height / 2;
+    let bossCX = boss.x + boss.width / 2;
+    let bossCY = boss.y + boss.height / 2;
     let dx = bossCX - mochiCX;
     let dy = bossCY - mochiCY;
-    if (Math.sqrt(dx * dx + dy * dy) < poppi.radius + mochi.radius) {
+    if (Math.sqrt(dx * dx + dy * dy) < boss.radius + mochi.radius) {
         handleMochiDamage();
     }
 }
@@ -843,46 +1111,18 @@ function draw() {
 
     if (!gameActive && !gamePaused) return;
 
-    if (bgImg.complete && bgImg.naturalWidth !== 0) {
-        ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    }
-
-    // Tintes de estado
-    if (poppi.state === "BOUNCING") {
-        ctx.fillStyle = "rgba(255,0,0,0.05)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    if (poppi.state === "GRAB_WINDUP") {
-        ctx.fillStyle = "rgba(255,140,0,0.10)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    if (poppi.state === "ANGRY_GRAB") {
-        ctx.fillStyle = "rgba(255,0,0,0.08)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    if (poppi.state === "GRAB_STUN") {
-        ctx.fillStyle = "rgba(0,220,120,0.07)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    // Tinte púrpura en fase 3
-    if (poppi.phase === 3) {
-        ctx.fillStyle = "rgba(120,0,200,0.04)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-
-    // Sprite Poppi según fase
-    let currentPoppiImg;
-    if (poppi.phase >= 2) {
-        currentPoppiImg = (poppi.state === "BOUNCING" || poppi.state === "INFLATING")
-            ? poppiAngryImg
-            : poppiAngryPhaseImg;
+    const arenaBg = LEVELS[currentLevelIndex].bg;
+    if (arenaBg.complete && arenaBg.naturalWidth !== 0) {
+        ctx.drawImage(arenaBg, 0, 0, canvas.width, canvas.height);
     } else {
-        currentPoppiImg = (poppi.state === "BOUNCING" || poppi.state === "INFLATING")
-            ? poppiAngryImg
-            : poppiImg;
+        ctx.fillStyle = "#0c0a14";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
     // Mochi
+    BOSS_HANDLERS[LEVELS[currentLevelIndex].key].draw();
+
+    // Mochi (va después del fondo del jefe pero encima de sus efectos)
     if (mochi.invulnerable) {
         ctx.globalAlpha = Math.sin(Date.now() * 0.03) > 0 ? 0.2 : 1;
     } else if (mochi.isShrunk) {
@@ -891,7 +1131,30 @@ function draw() {
     ctx.drawImage(mochiImg, mochi.x, mochi.y, mochi.width, mochi.height);
     ctx.globalAlpha = 1;
 
-    // Poppi con brillo según fase
+    // Proyectiles Mochi
+    starDustProjectiles.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#fff3b0";
+        ctx.shadowBlur = 10; ctx.shadowColor = "#fff3b0";
+        ctx.fill(); ctx.closePath(); ctx.shadowBlur = 0;
+    });
+}
+
+function drawPoppi() {
+    if (poppi.state === "BOUNCING") { ctx.fillStyle = "rgba(255,0,0,0.05)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (poppi.state === "GRAB_WINDUP") { ctx.fillStyle = "rgba(255,140,0,0.10)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (poppi.state === "ANGRY_GRAB") { ctx.fillStyle = "rgba(255,0,0,0.08)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (poppi.state === "GRAB_STUN") { ctx.fillStyle = "rgba(0,220,120,0.07)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+    if (poppi.phase === 3) { ctx.fillStyle = "rgba(120,0,200,0.04)"; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+    let currentPoppiImg;
+    if (poppi.phase >= 2) {
+        currentPoppiImg = (poppi.state === "BOUNCING" || poppi.state === "INFLATING") ? poppiAngryImg : poppiAngryPhaseImg;
+    } else {
+        currentPoppiImg = (poppi.state === "BOUNCING" || poppi.state === "INFLATING") ? poppiAngryImg : poppiImg;
+    }
+
     if (poppi.isImmune) {
         ctx.save();
         ctx.shadowBlur = 30;
@@ -902,34 +1165,82 @@ function draw() {
     }
     ctx.drawImage(currentPoppiImg, poppi.x, poppi.y, poppi.width, poppi.height);
 
-    // Globos normales
     balloons.forEach(b => {
         const img = b.phase >= 2 ? balloonPurpleImg : balloonBlueImg;
-        ctx.save();
-        ctx.translate(b.x, b.y);
+        ctx.save(); ctx.translate(b.x, b.y);
         ctx.drawImage(img, -b.radius * 0.7, -b.radius, b.radius * 1.4, b.radius * 2);
         ctx.restore();
     });
 
-    // Globos teledirigidos — rosa con pulso
     homingBalloons.forEach(h => {
         const pulse = 0.6 + Math.sin(Date.now() * 0.008) * 0.4;
-        ctx.save();
-        ctx.translate(h.x, h.y);
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "#ff6eb4";
-        ctx.globalAlpha = pulse;
+        ctx.save(); ctx.translate(h.x, h.y);
+        ctx.shadowBlur = 15; ctx.shadowColor = "#ff6eb4"; ctx.globalAlpha = pulse;
         ctx.drawImage(balloonPinkImg, -h.radius * 0.7, -h.radius, h.radius * 1.4, h.radius * 2);
         ctx.restore();
     });
+}
 
-    // Proyectiles Mochi
-    starDustProjectiles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#fff3b0";
-        ctx.shadowBlur = 10; ctx.shadowColor = "#fff3b0";
-        ctx.fill(); ctx.closePath(); ctx.shadowBlur = 0;
+function drawLady() {
+    if (lady.phase >= 2 && ladyArenaBg.complete && ladyArenaBg.naturalWidth !== 0) {
+        ctx.fillStyle = "rgba(120,0,200,0.05)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    const cellW = canvas.width / DANCE_GRID_COLS;
+    const cellH = canvas.height / DANCE_GRID_ROWS;
+    if (danceFloor.state === "warn" || danceFloor.state === "blink" || danceFloor.state === "danger") {
+        const totalCells = DANCE_GRID_COLS * DANCE_GRID_ROWS;
+        for (let idx = 0; idx < totalCells; idx++) {
+            const col = idx % DANCE_GRID_COLS;
+            const row = Math.floor(idx / DANCE_GRID_COLS);
+            const isDanger = danceFloor.cells.includes(idx);
+
+            if (danceFloor.state === "warn") {
+                if (!isDanger) {
+                    ctx.fillStyle = "rgba(134,239,172,0.2)";
+                    ctx.strokeStyle = "rgba(134,239,172,0.7)";
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
+                    ctx.strokeRect(col * cellW, row * cellH, cellW, cellH);
+                }
+
+            } else if (danceFloor.state === "blink") {
+                if (!isDanger) {
+                    const blink = Math.floor(danceFloor.timer / 5) % 2 === 0;
+                    ctx.fillStyle = blink ? "rgba(134,239,172,0.3)" : "rgba(250,199,117,0.3)";
+                    ctx.strokeStyle = blink ? "rgba(134,239,172,0.9)" : "rgba(250,199,117,0.9)";
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
+                    ctx.strokeRect(col * cellW, row * cellH, cellW, cellH);
+                }
+
+            } else {
+                if (isDanger) {
+                    ctx.fillStyle = "rgba(226,75,74,0.55)";
+                    ctx.strokeStyle = "rgba(226,75,74,0.9)";
+                    ctx.lineWidth = 2;
+                    ctx.fillRect(col * cellW, row * cellH, cellW, cellH);
+                    ctx.strokeRect(col * cellW, row * cellH, cellW, cellH);
+                }
+            }
+        }
+    }
+
+    let currentLadyImg = lady.phase === 3 ? ladyDeadImg : lady.phase === 2 ? ladyAngryImg : ladyImg;
+
+    if (lady.isImmune) {
+        ctx.save();
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = lady.phase === 3 ? "#aa00ff" : "#ffd700";
+        ctx.globalAlpha = 0.4 + Math.sin(Date.now() * 0.01) * 0.3;
+        ctx.drawImage(currentLadyImg, lady.x, lady.y, lady.width, lady.height);
+        ctx.restore();
+    }
+    ctx.drawImage(currentLadyImg, lady.x, lady.y, lady.width, lady.height);
+
+    musicNotes.forEach(n => {
+        const img = n.phase >= 2 ? notaRosaImg : notaAzulImg;
+        ctx.drawImage(img, n.x - n.radius, n.y - n.radius, n.radius * 2, n.radius * 2);
     });
 }
 
@@ -949,6 +1260,18 @@ const imagesToLoad = [
     { img: balloonBlueImg, src: "img/globo_azul.png" },
     { img: balloonPurpleImg, src: "img/globo_morado.png" },
     { img: balloonPinkImg, src: "img/globo_rosa.png" },
+    { img: mochiSustoImg, src: "img/mochi_susto_frame.png" },
+    { img: mochiLlantoImg, src: "img/mochi_llanto_frame.png" },
+    { img: mochiColapsoImg, src: "img/mochi_colapso_frame.png" },
+    { img: mochiSorpresaImg, src: "img/mochi_sorpresa_frame.png" },
+    { img: mochiSaltoImg, src: "img/mochi_salto_frame.png" },
+    { img: mochiTriunfoImg, src: "img/mochi_triunfo_frame.png" },
+    { img: ladyImg, src: "img/lady.png" },
+    { img: ladyAngryImg, src: "img/ladyAngry.png" },
+    { img: ladyDeadImg, src: "img/ladyDead.png" },
+    { img: notaAzulImg, src: "img/notaAzul.png" },
+    { img: notaRosaImg, src: "img/notaRosa.png" },
+    { img: ladyArenaBg, src: "img/cajaMusical.png" },
 ];
 
 const loadingMessages = [

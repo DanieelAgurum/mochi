@@ -238,7 +238,6 @@ function checkGamepadMenu() {
     // ── Confirmar con A ──
     const aPressed = gp.buttons[0]?.pressed;
     if (aPressed && !aWasPressed) {
-        AudioSystem.playSFX("click");
         buttons[menuFocusIndex]?.click();
     }
     aWasPressed = !!aPressed;

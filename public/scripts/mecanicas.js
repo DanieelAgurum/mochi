@@ -38,8 +38,8 @@ const mochiTriunfoImg = new Image(); mochiTriunfoImg.src = "img/mochi_triunfo_fr
 const ladyImg = new Image(); ladyImg.src = "img/lady.png";
 const ladyAngryImg = new Image(); ladyAngryImg.src = "img/ladyAngry.png";
 const ladyDeadImg = new Image(); ladyDeadImg.src = "img/ladyDead.png";
-const notaAzulImg = new Image(); notaAzulImg.src = "img/notaAzul.png";
-const notaRosaImg = new Image(); notaRosaImg.src = "img/notaRosa.png";
+const notaAzulImg = new Image(); notaAzulImg.src = "img/NotaAzul.png";
+const notaRosaImg = new Image(); notaRosaImg.src = "img/NotaRosa.png";
 const ladyArenaBg = new Image(); ladyArenaBg.src = "img/cajaMusical.png";
 
 // ── MOCHI ──
@@ -1240,6 +1240,7 @@ function drawLady() {
 
     musicNotes.forEach(n => {
         const img = n.phase >= 2 ? notaRosaImg : notaAzulImg;
+        if (!img.complete || img.naturalWidth === 0) return;
         ctx.drawImage(img, n.x - n.radius, n.y - n.radius, n.radius * 2, n.radius * 2);
     });
 }
@@ -1269,8 +1270,8 @@ const imagesToLoad = [
     { img: ladyImg, src: "img/lady.png" },
     { img: ladyAngryImg, src: "img/ladyAngry.png" },
     { img: ladyDeadImg, src: "img/ladyDead.png" },
-    { img: notaAzulImg, src: "img/notaAzul.png" },
-    { img: notaRosaImg, src: "img/notaRosa.png" },
+    { img: notaAzulImg, src: "img/NotaAzul.png" },
+    { img: notaRosaImg, src: "img/NotaRosa.png" },
     { img: ladyArenaBg, src: "img/cajaMusical.png" },
 ];
 

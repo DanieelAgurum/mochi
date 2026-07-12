@@ -336,14 +336,25 @@ function startGame() {
 
 function startGameWithoutFullscreen() {
     resetState();
-    document.getElementById('hud-top').style.display = 'flex';
-    document.getElementById('lives-container').style.display = 'flex';
-    document.getElementById('boss-bar-container').style.display = 'block';
-    document.getElementById('boss-name').style.display = 'block';
     gameActive = true;
     gamePaused = false;
     showOverlay(null);
-    // La música ya la inicia showBossIntro al terminar
+
+    const arenaBg = LEVELS[currentLevelIndex].bg;
+
+    function showLevel() {
+        canvas.style.display = 'block';
+        document.getElementById('hud-top').style.display = 'flex';
+        document.getElementById('lives-container').style.display = 'flex';
+        document.getElementById('boss-bar-container').style.display = 'block';
+        document.getElementById('boss-name').style.display = 'block';
+    }
+
+    if (arenaBg.complete && arenaBg.naturalWidth !== 0) {
+        showLevel();
+    } else {
+        arenaBg.onload = () => showLevel();
+    }
 }
 
 function restartGame() {
@@ -373,6 +384,8 @@ function goToNextLevel() {
     showOverlay(null);
     gameActive = false;
     AudioSystem.stopMusic();
+    canvas.style.display = 'none';
+    document.getElementById('hud-top').style.display = 'none';
     showBossIntro(LEVELS[currentLevelIndex].key, () => startGameWithoutFullscreen());
 }
 
@@ -413,7 +426,7 @@ function resetState() {
     document.getElementById('lives-container').style.display = 'none';
     document.getElementById('boss-bar-container').style.display = 'none';
     document.getElementById('boss-name').style.display = 'none';
-    canvas.style.display = 'block';
+    canvas.style.display = 'none';
     lives = 3;
     renderHearts();
     bossBar.style.width = "100%";
@@ -869,15 +882,6 @@ function ladyAttackPatterns() {
         if (danceFloor.timer === 1) checkDanceFloorHit();
         if (danceFloor.timer > 20) { danceFloor.state = "idle"; danceFloor.cells = []; }
     }
-
-    if (danceFloor.state === "warn") {
-        danceFloor.timer++;
-        if (danceFloor.timer > 45) { danceFloor.state = "danger"; danceFloor.timer = 0; }
-    } else if (danceFloor.state === "danger") {
-        danceFloor.timer++;
-        if (danceFloor.timer === 1) checkDanceFloorHit();
-        if (danceFloor.timer > 20) { danceFloor.state = "idle"; danceFloor.cells = []; }
-    }
 }
 
 function checkDanceFloorHit() {
@@ -1125,8 +1129,6 @@ function draw() {
     // Mochi (va después del fondo del jefe pero encima de sus efectos)
     if (mochi.invulnerable) {
         ctx.globalAlpha = Math.sin(Date.now() * 0.03) > 0 ? 0.2 : 1;
-    } else if (mochi.isShrunk) {
-        ctx.globalAlpha = 0.7;
     }
     ctx.drawImage(mochiImg, mochi.x, mochi.y, mochi.width, mochi.height);
     ctx.globalAlpha = 1;

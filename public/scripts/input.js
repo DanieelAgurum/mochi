@@ -53,9 +53,9 @@ window.addEventListener("keyup", (e) => { keys[e.key] = false; });
 // Menús y sus botones en orden de navegación
 const MENU_BUTTONS = {
     mainMenuScene: [".btn-play", ".btn-controls-main", ".btn-settings-main", ".btn-credits-main"],
-    pauseMenu: [".btn-primary", ".btn-secondary", ".btn-terciary", ".btn-ghost"],
+    pauseMenu: [".btn-primary", ".btn-secondary", ".btn-tercero", ".btn-ghost"],
     gameOverMenu: [".btn-primary", ".btn-ghost"],
-    winMenu: [".btn-primary", ".btn-secondary", ".btn-terciary", ".btn-ghost"],
+    winMenu: [".btn-primary", ".btn-secondary", ".btn-tercero", ".btn-ghost"],
 };
 
 // Elementos navegables del overlay de configuración en orden

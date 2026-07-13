@@ -115,6 +115,12 @@ canvas#gameCanvas {
     color: #fff;
 }
 
+.btn-tercero {
+    background: transparent;
+    border: 2px solid #c084fc55;
+    color: #c084fc;
+}
+
 .btn-danger {
     background: linear-gradient(135deg, #f87171, #dc2626);
     color: #fff;

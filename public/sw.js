@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mochi-bloop-v1.1.0';
+const CACHE_NAME = 'mochi-bloop-v1.1.1';
 
 const ASSETS = [
     "public/img/biteForce.png",

@@ -183,6 +183,8 @@ const BOSS_INTROS = {
     }
 };
 
+let introFinishFn = null;
+
 function showBossIntro(bossKey, onFinish) {
     const boss = BOSS_INTROS[bossKey];
     if (!boss) { onFinish(); return; }
@@ -257,6 +259,7 @@ function showBossIntro(bossKey, onFinish) {
         clearTimeout(progressTimeout);
         document.removeEventListener('keydown', finish);
         screen.removeEventListener('click', finish);
+        introFinishFn = null; // ← NUEVO
 
         const irisEl = document.getElementById('introIrisOverlay');
         irisEl.style.transition = 'none';
@@ -324,6 +327,7 @@ function showBossIntro(bossKey, onFinish) {
 
     function showContinue() {
         document.getElementById('introContinue').classList.add('show');
+        introFinishFn = finish; // ← NUEVO
 
         const PROGRESS_MS = 4000;
         requestAnimationFrame(() => {

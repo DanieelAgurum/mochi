@@ -28,6 +28,20 @@ function checkGamepadPause() {
     startWasPressed = !!isPressed;
 }
 
+let introSkipWasPressed = false;
+function checkGamepadIntroSkip() {
+    const gp = getGamepad();
+    if (!gp || typeof introFinishFn !== "function") {
+        introSkipWasPressed = false;
+        return;
+    }
+    const anyPressed = gp.buttons.some(b => b.pressed);
+    if (anyPressed && !introSkipWasPressed) {
+        introFinishFn();
+    }
+    introSkipWasPressed = anyPressed;
+}
+
 window.addEventListener("keydown", (e) => {
     keys[e.key] = true;
     if (e.key === " " || e.key === "Spacebar" || e.key === "C") e.preventDefault();
@@ -39,9 +53,9 @@ window.addEventListener("keyup", (e) => { keys[e.key] = false; });
 // Menús y sus botones en orden de navegación
 const MENU_BUTTONS = {
     mainMenuScene: [".btn-play", ".btn-controls-main", ".btn-settings-main", ".btn-credits-main"],
-    pauseMenu: [".btn-primary", ".btn-secondary", ".btn-ghost"],
+    pauseMenu: [".btn-primary", ".btn-secondary", ".btn-terciary", ".btn-ghost"],
     gameOverMenu: [".btn-primary", ".btn-ghost"],
-    winMenu: [".btn-primary", ".btn-ghost"],
+    winMenu: [".btn-primary", ".btn-secondary", ".btn-terciary", ".btn-ghost"],
 };
 
 // Elementos navegables del overlay de configuración en orden

@@ -41,6 +41,10 @@ const ladyDeadImg = new Image(); ladyDeadImg.src = "img/ladyDead.png";
 const notaAzulImg = new Image(); notaAzulImg.src = "img/NotaAzul.png";
 const notaRosaImg = new Image(); notaRosaImg.src = "img/NotaRosa.png";
 const ladyArenaBg = new Image(); ladyArenaBg.src = "img/cajaMusical.png";
+const proyectilF1 = new Image(); proyectilF1.src = "img/proyectil_frame1.png";
+const proyectilF2 = new Image(); proyectilF2.src = "img/proyectil_frame2.png";
+const proyectilF3 = new Image(); proyectilF3.src = "img/proyectil_frame3.png";
+const mochiLoseImg = new Image(); mochiLoseImg.src = "img/mochiLose.png";
 
 // ── MOCHI ──
 const mochi = {
@@ -947,6 +951,7 @@ function handleMochiDamage() {
 function update() {
     checkGamepadMenu();
     checkGamepadPause();
+    checkGamepadIntroSkip();
     if (!gameActive || gamePaused) return;
 
     updateMochiPhysics();
@@ -975,7 +980,7 @@ function update() {
             vx: shootDir.x * SPEED,
             vy: shootDir.y * SPEED
         });
-        mochi.shootCooldown = 12;
+        mochi.shootCooldown = 18;
     }
 
     // ── Proyectiles Mochi ──
@@ -992,7 +997,7 @@ function update() {
 
             if (!boss.isImmune) {
                 const maxHp = LEVELS[currentLevelIndex].maxHp;
-                boss.hp -= 100;
+                boss.hp -= 40;
                 bossBar.style.width = (boss.hp / maxHp) * 100 + "%";
 
                 if (boss.hp > maxHp * 0.6) {
@@ -1127,19 +1132,20 @@ function draw() {
     BOSS_HANDLERS[LEVELS[currentLevelIndex].key].draw();
 
     // Mochi (va después del fondo del jefe pero encima de sus efectos)
-    if (mochi.invulnerable) {
+    if (mochi.invulnerable && mochi.invulnerableTimer > 60) {
         ctx.globalAlpha = Math.sin(Date.now() * 0.03) > 0 ? 0.2 : 1;
+        ctx.drawImage(mochiLoseImg, mochi.x, mochi.y, mochi.width, mochi.height);
+        ctx.globalAlpha = 1;
+    } else {
+        ctx.drawImage(mochiImg, mochi.x, mochi.y, mochi.width, mochi.height);
     }
-    ctx.drawImage(mochiImg, mochi.x, mochi.y, mochi.width, mochi.height);
-    ctx.globalAlpha = 1;
 
     // Proyectiles Mochi
+    const proyectilFrames = [proyectilF1, proyectilF2, proyectilF1];
     starDustProjectiles.forEach(p => {
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-        ctx.fillStyle = "#fff3b0";
-        ctx.shadowBlur = 10; ctx.shadowColor = "#fff3b0";
-        ctx.fill(); ctx.closePath(); ctx.shadowBlur = 0;
+        const frame = proyectilFrames[Math.floor(Date.now() / 80) % 3];
+        const size = 28;
+        ctx.drawImage(frame, p.x - size / 2, p.y - size / 2, size, size);
     });
 }
 
@@ -1275,6 +1281,10 @@ const imagesToLoad = [
     { img: notaAzulImg, src: "img/NotaAzul.png" },
     { img: notaRosaImg, src: "img/NotaRosa.png" },
     { img: ladyArenaBg, src: "img/cajaMusical.png" },
+    { img: proyectilF1, src: "img/proyectil_frame1.png" },
+    { img: proyectilF2, src: "img/proyectil_frame2.png" },
+    { img: proyectilF3, src: "img/proyectil_frame3.png" },
+    { img: mochiLoseImg, src: "img/mochiLose.png" },
 ];
 
 const loadingMessages = [
